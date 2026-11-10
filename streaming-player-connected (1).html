@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#14112B">
+<title>Streaming Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;600;800&family=Fraunces:ital,opsz,wght@0,9..144,800;1,9..144,600&display=swap" rel="stylesheet">
+<style>
+@property --tint{syntax:'<color>';inherits:true;initial-value:#6B5BD6}
+:root{--bg:#14112B;--sf:#221E45;--sf2:#2F2A5A;--tx:#F6F1E7;--mu:#B6B0D0;--ac:#FFB547;--ac2:#FF6B8A;--ink:#17132E;--tint:#6B5BD6;--sh:#6B5BD6;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:--tint .8s}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#F4F0FF;--sf:#E7E0FA;--sf2:#D8CFF3;--tx:#17132E;--mu:#5A5480;--ac:#C2570C;--ac2:#D6336C;--ink:#fff;color-scheme:light}}
+:root[data-theme="light"]{--bg:#F4F0FF;--sf:#E7E0FA;--sf2:#D8CFF3;--tx:#17132E;--mu:#5A5480;--ac:#C2570C;--ac2:#D6336C;--ink:#fff;color-scheme:light}
+:root[data-theme="dark"]{--bg:#14112B;--sf:#221E45;--sf2:#2F2A5A;--tx:#F6F1E7;--mu:#B6B0D0;--ac:#FFB547;--ac2:#FF6B8A;--ink:#17132E;color-scheme:dark}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;color:var(--tx);font:400 16px/1.35 'Bricolage Grotesque',system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(90% 50% at 10% -8%,color-mix(in srgb,var(--tint) 60%,transparent),transparent 70%),radial-gradient(70% 40% at 105% 105%,color-mix(in srgb,var(--ac2) 20%,transparent),transparent 70%)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+#app{padding:20px 16px 170px;max-width:640px;margin:0 auto}
+h1{font:800 42px/1 'Fraunces',Georgia,serif;letter-spacing:-.03em;margin:10px 0 22px}
+h2{font:italic 600 24px/1.1 'Fraunces',Georgia,serif;margin:32px 0 14px}
+.mu{color:var(--mu)}
+.cv{aspect-ratio:1;border-radius:12px;position:relative;overflow:hidden;box-shadow:0 6px 16px -8px rgba(0,0,0,.6)}
+.cv img,.fan i img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:160px;padding:20px 14px 20px 22px;border-radius:28px;background:linear-gradient(120deg,var(--ac),var(--ac2));color:var(--ink);overflow:hidden;box-shadow:0 18px 36px -18px var(--ac2)}
+.hero .t{flex:1;position:relative;z-index:1}
+.hero b{display:block;font:800 30px/.95 'Fraunces',Georgia,serif;letter-spacing:-.03em;margin-bottom:8px}
+.hero span{display:block;font-size:14px;opacity:.8}
+.hero em{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:8px 16px;border-radius:99px;background:var(--ink);color:var(--tx);font-style:normal;font-weight:600;font-size:14px}
+.fan{position:relative;width:128px;height:112px;flex:none}
+.fan i{position:absolute;width:76px;height:76px;border-radius:12px;border:3px solid rgba(255,255,255,.9);box-shadow:0 10px 20px -8px rgba(0,0,0,.5);overflow:hidden}
+.rail{display:flex;gap:14px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none}
+.card{flex:none;width:150px;min-width:0}
+.card .cv{width:100%;border-radius:16px;margin-bottom:9px}
+.card b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card span{font-size:14px;color:var(--mu);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 14px}
+.grid .card{width:auto}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.gtile{position:relative;overflow:hidden;aspect-ratio:1.55;border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;font:800 23px/1 'Fraunces',Georgia,serif;letter-spacing:-.02em}
+.gtile small{font:400 13px 'Bricolage Grotesque',system-ui,sans-serif;opacity:.8;letter-spacing:0;margin-top:4px}
+.gtile::after{content:"";position:absolute;right:-20px;top:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.16)}
+.row{display:flex;align-items:center;gap:4px}
+.row .main{display:flex;align-items:center;gap:12px;flex:1;min-width:0;padding:8px 0}
+.row .cv{width:48px;flex:none;border-radius:10px}
+.row .cv.rd{border-radius:50%}
+.tt{min-width:0}
+.tt b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt span{color:var(--mu);font-size:14px}
+.now b{color:var(--ac)}
+.row.now .tt b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ac);margin-right:7px;vertical-align:1px}
+body.playing .row.now .tt b::before{animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(.5);opacity:.5}}
+.hb{padding:10px;color:var(--mu)}.hb.on{color:var(--ac2)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px;scrollbar-width:none}
+.chip{padding:9px 16px;border-radius:99px;background:color-mix(in srgb,var(--sf) 85%,transparent);white-space:nowrap;font-weight:600}
+.chip.on{background:var(--ac);color:var(--ink)}
+.si{width:100%;padding:15px 18px;border-radius:99px;border:0;background:color-mix(in srgb,var(--sf) 90%,transparent);color:var(--tx);font:inherit;margin-bottom:6px}
+.si::placeholder{color:var(--mu)}
+.empty{color:var(--mu);padding:30px 0}
+.back{padding:8px 0;color:var(--mu);display:flex;align-items:center;gap:4px}
+.dh{display:flex;gap:16px;align-items:flex-end;margin:6px 0 18px}
+.dh .cv{width:128px;flex:none;border-radius:16px}
+.dh h1{margin:0 0 6px;font-size:30px;line-height:1.02}
+.acts{display:flex;gap:10px;margin:0 0 12px}
+.btn{padding:12px 22px;border-radius:99px;background:linear-gradient(120deg,var(--ac),var(--ac2));color:var(--ink);font-weight:600;display:flex;align-items:center;gap:8px}
+.btn.alt{background:color-mix(in srgb,var(--sf2) 85%,transparent);color:var(--tx)}
+a.btn{text-decoration:none;display:inline-flex}
+#tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:color-mix(in srgb,var(--sf) 78%,transparent);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border-top:1px solid rgba(255,255,255,.07);padding:6px 0 calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mu);padding:6px;text-align:center}
+.tab.on{color:var(--ac)}
+#mini{position:fixed;left:10px;right:10px;bottom:calc(70px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--sf2) 78%,transparent);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);border:1px solid rgba(255,255,255,.08);box-shadow:0 14px 30px -12px rgba(0,0,0,.65);border-radius:22px;z-index:5;overflow:hidden;display:flex;align-items:center;gap:6px;padding:8px 8px 11px;max-width:620px;margin:0 auto}
+#mini[hidden]{display:none}
+#mini .info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+#mini .cv{width:44px;flex:none;border-radius:10px}
+#mini .ib{padding:10px}
+.pb{position:absolute;left:0;bottom:0;height:3px;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+#sheet{position:fixed;inset:0;z-index:10;background:radial-gradient(120% 60% at 50% 0,color-mix(in srgb,var(--sh) 60%,var(--bg)),var(--bg) 75%);padding:calc(16px + env(safe-area-inset-top,0px)) 22px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;transform:translateY(100%);visibility:hidden;transition:transform .3s,visibility 0s .3s}
+#sheet.open{transform:none;visibility:visible;transition:transform .3s}
+#sheet>div{max-width:420px;margin:0 auto}
+.cov{position:relative;margin:14px 0 28px}
+.cov .big{width:80%;margin:0;position:relative;z-index:1;border-radius:20px;box-shadow:0 30px 50px -18px color-mix(in srgb,var(--sh) 90%,#000)}
+.disc{position:absolute;top:5%;right:0;width:78%;aspect-ratio:1;border-radius:50%;background:repeating-radial-gradient(circle,transparent 0 3px,rgba(255,255,255,.05) 3px 4px),conic-gradient(#0c0c10,#3a3a44 12%,#0c0c10 25%,#0c0c10 50%,#3a3a44 62%,#0c0c10 75%);animation:spin 5s linear infinite;animation-play-state:paused}
+.disc::after{content:"";position:absolute;inset:36%;border-radius:50%;background:radial-gradient(circle,#0c0c10 0 6%,var(--ac) 7%)}
+body.playing .disc{animation-play-state:running}
+@keyframes spin{to{transform:rotate(360deg)}}
+.nt{display:flex;align-items:center;gap:8px}.nt .tt{flex:1}.nt b{font:800 27px/1.05 'Fraunces',Georgia,serif;letter-spacing:-.02em;white-space:normal}
+#sc{width:100%;accent-color:var(--ac);margin:16px 0 0}
+.tm{display:flex;justify-content:space-between;font-size:13px;color:var(--mu)}
+.ctl{display:flex;justify-content:space-between;align-items:center;margin:12px 0 24px}
+.ctl button{padding:10px;color:var(--tx);display:flex;align-items:center}
+.ctl .on{color:var(--ac)}.ctl small{font-size:11px;font-weight:600}
+.ctl .pp{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--ac),var(--ac2));color:var(--ink);justify-content:center;box-shadow:0 14px 28px -10px var(--ac2)}
+.un{display:flex;justify-content:space-between;gap:10px;width:100%;padding:9px 0}
+dialog{background:var(--sf);color:var(--tx);border:0;border-radius:24px;padding:24px;width:min(92vw,380px)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{margin:0 0 4px}
+dialog label{display:block;font-size:14px;color:var(--mu);margin:14px 0 6px}
+dialog .si{margin:0}
+.st{min-height:20px;margin:10px 0;color:var(--ac);font-size:14px}
+.dg{display:flex;gap:10px;justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){#sheet,#sheet.open{transition:none}.disc,body.playing .disc,body.playing .row.now .tt b::before{animation:none}:root{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"><div id="view"></div></div>
+<div id="mini" hidden></div>
+<nav id="tabs">
+<button class="tab" data-t="home" onclick="go('home')"></button>
+<button class="tab" data-t="search" onclick="go('search')"></button>
+<button class="tab" data-t="library" onclick="go('library')"></button>
+</nav>
+<div id="sheet" aria-label="Now playing"></div>
+<dialog id="cn"><h2>Connect to your server</h2>
+<label for="su">Server address</label><input class="si" id="su" type="url" placeholder="https://your-worker.workers.dev" autocomplete="url">
+<label for="sp">Access key</label><input class="si" id="sp" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')connect()">
+<div class="st" id="cm" role="status"></div>
+<div class="dg"><button class="btn alt" onclick="$('#cn').close()">Cancel</button><button class="btn" onclick="connect()">Connect</button></div></dialog>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const U={artist:'Unknown artist',album:'Unknown album',genre:'Unknown genre'},nm=(s,u)=>s&&String(s).trim()?String(s).trim():u;
+const S={tab:'home',v:null,q:'',lib:'Albums',queue:[],orig:[],i:-1,playing:false,shuffle:false,repeat:0,lim:300,scan:''};
+let TTID=0,LIB=[],byId={},AR=[],ALB=[],GE=[],SO=[],srv='',tok=null,CTX=[],retried=false,drag=0,LK=new Set(),REC=[],SQ=[],SC=null,flushing=false;
+const LF={state:'unknown',user:'',token:'',url:'',msg:''};
+// Same storage keys as the iPod player, so the server address is shared when both live on the same site.
+try{srv=localStorage.getItem('pod-srv')||'';tok=sessionStorage.getItem('pod-tok');LK=new Set(JSON.parse(localStorage.getItem('str-likes')||'[]'));REC=JSON.parse(localStorage.getItem('str-rec')||'[]');SQ=JSON.parse(localStorage.getItem('str-scq')||'[]')}catch(e){}
+const save=()=>{try{localStorage.setItem('str-likes',JSON.stringify([...LK]));localStorage.setItem('str-rec',JSON.stringify(REC))}catch(e){}};
+const au=new Audio();
+const P={play:'M8 5v14l11-7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',next:'M6 5l9 7-9 7zM17 5h2v14h-2z',prev:'M18 5l-9 7 9 7zM5 5h2v14H5z',
+shuffle:'M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3',repeat:'M4 11V9a3 3 0 013-3h12l-3-3M20 13v2a3 3 0 01-3 3H5l3 3',
+heart:'M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z',home:'M4 11l8-7 8 7v9h-5v-6H9v6H4z',search:'M11 4a7 7 0 100 14 7 7 0 000-14zM16 16l5 5',
+lib:'M5 4v16M10 4v16M15 5l4 14',down:'M6 9l6 6 6-6',left:'M15 6l-6 6 6 6'};
+const ic=(n,f,s)=>`<svg viewBox="0 0 24 24" width="${s||22}" height="${s||22}" fill="${f?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+const fmt=s=>{s=Math.max(0,s||0);return`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`};
+const hue=s=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))%360;return h};
+const bg=h=>`background:radial-gradient(circle at 70% 30%,rgba(255,255,255,.35) 0 13%,transparent 14%),linear-gradient(135deg,hsl(${h} 70% 58%),hsl(${(h+50)%360} 60% 30%))`;
+const img=u=>u?`<img alt="" loading="lazy" referrerpolicy="no-referrer" src="${esc(srv+u)}" onerror="this.remove()">`:'';
+const cv=(u,seed,cls,st)=>`<div class="cv ${cls||''}" style="${bg(hue(seed))};${st||''}">${img(u)}</div>`;
+const cur=()=>S.i>=0?byId[S.queue[S.i]]:null;
+const gc=ids=>{for(const id of ids){const c=byId[id].cover;if(c)return c}return null};
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ---- connection (same calls as the iPod player) ---- */
+function openConn(){const d=$('#cn');if(d.open)return;$('#su').value=srv;$('#cm').textContent='';d.showModal()}
+async function loadLib(){let r;try{r=await fetch(srv+'/api/library',{headers:{Authorization:'Bearer '+tok}})}catch(e){throw Error('Cannot reach the server')}
+ if(r.status===401){tok=null;throw Error('Session expired')}if(!r.ok)throw Error('Server error');
+ LIB=(await r.json()).filter(t=>/^\/api\/stream\/\d+\?e=\d+&s=[0-9a-f]{64}$/.test(t.src));index();lfStatus()}
+async function connect(){const m=$('#cm');try{m.textContent='Connecting…';srv=$('#su').value.trim().replace(/\/$/,'');
+ if(!/^https:\/\//.test(srv)&&!/^http:\/\/localhost/.test(srv))throw Error('Use an https:// address');
+ let r;try{r=await fetch(srv+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('#sp').value})})}catch(e){throw Error('Cannot reach the server. Check the address.')}
+ if(r.status===429)throw Error('Too many attempts. Try again later.');if(!r.ok)throw Error('Wrong access key');
+ tok=(await r.json()).token;$('#sp').value='';try{localStorage.setItem('pod-srv',srv);sessionStorage.setItem('pod-tok',tok)}catch(e){}
+ await loadLib();$('#cn').close();render()}catch(e){m.textContent=e.message}}
+function reload(){loadLib().then(render).catch(()=>openConn())}
+function disconnect(){tok=null;LF.state='unknown';LIB=[];index();au.pause();au.removeAttribute('src');S.queue=[];S.i=-1;try{sessionStorage.removeItem('pod-tok')}catch(e){}renderPlayer();render();openConn()}
+async function scanLib(){if(!tok)return openConn();
+ try{for(;;){const r=await fetch(srv+'/api/scan',{method:'POST',headers:{Authorization:'Bearer '+tok}});
+  if(r.status===401){tok=null;throw Error('login')}if(!r.ok)throw Error('fail');
+  const j=await r.json();S.scan=j.left?j.left+' left':'Done';render();if(!j.left||!j.done)break}
+  await loadLib();if(!S.scan)S.scan='Done'}
+ catch(e){S.scan='Error';if(e.message==='login')openConn()}
+ render()}
+
+/* ---- library indexes: albums, artists, genres, songs ---- */
+function index(){byId={};LIB.forEach(t=>byId[t.id]=t);
+ const by=(...f)=>(a,b)=>{for(const g of f){const x=g(byId[a]),y=g(byId[b]),c=typeof x==='number'?x-y:String(x).localeCompare(String(y),undefined,{sensitivity:'base',numeric:true});if(c)return c}return 0};
+ const grp=(k,sort)=>{const m=new Map();LIB.forEach(t=>{const n=nm(t[k],U[k]);if(!m.has(n))m.set(n,[]);m.get(n).push(t.id)});
+  return[...m].sort((a,b)=>a[0].localeCompare(b[0],undefined,{sensitivity:'base'})).map(([n,ids])=>{ids.sort(sort);const as=[...new Set(ids.map(i=>nm(byId[i].artist,U.artist)))];return{n,ids,ar:as.length===1?as[0]:'Various artists',cover:gc(ids),max:Math.max(...ids)}})};
+ AR=grp('artist',by(t=>t.album||'',t=>t.trk||0,t=>t.title));ALB=grp('album',by(t=>t.trk||0,t=>t.title));GE=grp('genre',by(t=>t.artist||'',t=>t.album||'',t=>t.trk||0,t=>t.title));
+ SO=LIB.map(t=>t.id).sort(by(t=>t.title,t=>t.artist))}
+
+/* ---- screens ---- */
+const row=t=>{const n=cur()&&cur().id===t.id,l=LK.has(t.id);return`<div class="row ${n?'now':''}" data-id="${t.id}"><button class="main" onclick="pl(${t.id})">${cv(t.cover,t.album||t.title)}<div class="tt"><b>${esc(t.title)}</b><span>${esc(nm(t.artist,U.artist))}</span></div></button><button class="hb ${l?'on':''}" aria-label="Favorite" onclick="like(${t.id})">${ic('heart',l)}</button></div>`};
+const gcard=(g,x)=>`<button class="card" onclick="openV('${g}',${({ALB,AR,GE})[g].indexOf(x)})">${cv(x.cover,x.n)}<b>${esc(x.n)}</b><span>${esc(g==='ALB'?x.ar:x.ids.length+' tracks')}</span></button>`;
+const item=(g,x,rd)=>`<button class="row main" style="width:100%" onclick="openV('${g}',${({ALB,AR,GE})[g].indexOf(x)})">${cv(x.cover,x.n,rd?'rd':'','width:56px;flex:none')}<div class="tt"><b>${esc(x.n)}</b><span>${esc(g==='ALB'?x.ar:x.ids.length+' tracks')}</span></div></button>`;
+const tile=x=>{const h=hue(x.n);return`<button class="gtile" style="background:linear-gradient(135deg,hsl(${h} 65% 42%),hsl(${(h+50)%360} 60% 24%))" onclick="openV('GE',${GE.indexOf(x)})">${esc(x.n)}<small>${x.ids.length} tracks</small></button>`};
+const acts=()=>`<div class="acts"><button class="btn" onclick="playAll(false)">${ic('play',1,18)} Play</button><button class="btn alt" onclick="playAll(true)">${ic('shuffle',0,18)} Shuffle</button></div>`;
+const empty=()=>`<p class="empty">${tok?'Your library is empty. Forward songs to your bot, then reload.':'Connect to your server to load your music.'}</p><button class="btn" onclick="${tok?'reload()':'openConn()'}">${tok?'Reload library':'Connect to server'}</button>`;
+function go(t){S.tab=t;S.v=null;render();scrollTo(0,0)}
+function openV(g,i){S.v={g,i};render();scrollTo(0,0)}
+function setLib(l){S.lib=l;S.lim=300;render()}
+function detail(){const{g,i}=S.v,x=({ALB,AR,GE})[g][i];if(!x){S.v=null;return''}CTX=x.ids;
+ return`<button class="back" onclick="S.v=null;render()">${ic('left')} Back</button><div class="dh">${cv(x.cover,x.n,'',"width:120px;flex:none;border-radius:14px")}<div><h1>${esc(x.n)}</h1><span class="mu">${esc(g==='ALB'?x.ar+', ':'')}${x.ids.length} tracks</span></div></div>${acts()}${x.ids.map(id=>row(byId[id])).join('')}`}
+function results(){const el=$('#res');if(!el)return;const q=S.q.trim().toLowerCase();
+ if(!q){CTX=[];el.innerHTML='<p class="empty">Search your library by title, artist, album or genre.</p>';return}
+ const m=s=>String(s||'').toLowerCase().includes(q);
+ const ts=LIB.filter(t=>m(t.title)||m(t.artist)||m(t.album)||m(t.genre)).slice(0,100),als=ALB.filter(a=>m(a.n)||m(a.ar));CTX=ts.map(t=>t.id);
+ el.innerHTML=(als.length?`<h2>Albums</h2><div class="rail">${als.map(a=>gcard('ALB',a)).join('')}</div>`:'')+(ts.length?`<h2>Tracks</h2>${ts.map(row).join('')}`:'<p class="empty">No match. Try another artist, album or genre.</p>')}
+function render(){
+ const names={home:['Home','home'],search:['Search','search'],library:['Library','lib']};
+ document.querySelectorAll('.tab').forEach(b=>{const n=names[b.dataset.t];b.innerHTML=ic(n[1])+n[0];b.classList.toggle('on',b.dataset.t===S.tab)});
+ const v=$('#view');
+ if(S.v){v.innerHTML=detail();return}
+ if(S.tab==='home'){
+  if(!LIB.length){v.innerHTML='<h1>Home</h1>'+empty();return}
+  const rec=SO.slice().sort((a,b)=>b-a).slice(0,6),rp=REC.filter(id=>byId[id]),fan=ALB.filter(a=>a.cover).concat(ALB.filter(a=>!a.cover)).slice(0,3);CTX=rec;
+  v.innerHTML=`<h1>Home</h1><button class="hero" onclick="shuffleAll()"><div class="t"><b>Shuffle everything</b><span>${LIB.length} tracks, ${ALB.length} albums</span><em>${ic('shuffle',0,16)} Play</em></div><div class="fan">${fan.map((a,k)=>`<i style="left:${k*34}px;top:${k===1?0:20}px;z-index:${k===1?3:2};transform:rotate(${(k-1)*10}deg);${bg(hue(a.n))}">${img(a.cover)}</i>`).join('')}</div></button>`
+  +(rp.length?`<h2>Recently played</h2><div class="rail">${rp.map(id=>{const t=byId[id];return`<button class="card" onclick="recPlay(${id})">${cv(t.cover,t.album||t.title)}<b>${esc(t.title)}</b><span>${esc(nm(t.artist,U.artist))}</span></button>`}).join('')}</div>`:'')
+  +`<h2>Latest albums</h2><div class="grid">${ALB.slice().sort((a,b)=>b.max-a.max).slice(0,6).map(a=>gcard('ALB',a)).join('')}</div><h2>Recently added</h2>${rec.map(id=>row(byId[id])).join('')}`}
+ else if(S.tab==='search'){v.innerHTML=`<h1>Search</h1><input class="si" id="q" type="search" placeholder="Songs, artists, albums" value="${esc(S.q)}" oninput="S.q=this.value;results()"><div id="res"></div>`;results()}
+ else{let body='';const L=S.lib;
+  if(L==='Server'){let h='';try{h=new URL(srv).host}catch(e){}
+   body=`<p class="mu">${tok?'Connected to '+esc(h)+(LIB.length?', '+LIB.length+' tracks':''):'Not connected'}</p><div class="acts"><button class="btn alt" onclick="reload()">Reload library</button></div><div class="acts"><button class="btn alt" onclick="scanLib()">Scan song details</button></div><p class="mu">${esc(S.scan)}</p><div class="acts"><button class="btn alt" onclick="${tok?'disconnect()':'openConn()'}">${tok?'Disconnect':'Connect to server'}</button></div>${lfBlock()}`}
+  else if(!LIB.length)body=empty();
+  else if(L==='Albums')body='<div class="grid">'+ALB.map(a=>gcard('ALB',a)).join('')+'</div>';
+  else if(L==='Artists')body=AR.map(a=>item('AR',a,1)).join('');
+  else if(L==='Genres')body='<div class="tiles">'+GE.map(tile).join('')+'</div>';
+  else{const ids=L==='Favorites'?SO.filter(id=>LK.has(id)):SO;CTX=ids;
+   body=ids.length?acts()+ids.slice(0,S.lim).map(id=>row(byId[id])).join('')+(ids.length>S.lim?`<button class="btn alt" style="margin-top:10px" onclick="S.lim+=300;render()">Show more</button>`:''):'<p class="empty">No favorites yet. Tap the heart on a track to add it.</p>'}
+  v.innerHTML=`<h1>Library</h1><div class="chips">${['Favorites','Albums','Artists','Genres','Songs','Server'].map(l=>`<button class="chip ${L===l?'on':''}" onclick="setLib('${l}')">${l}</button>`).join('')}</div>${body}`}
+}
+
+/* ---- queue and playback ---- */
+function build(id){const rest=S.orig.filter(x=>x!==id);S.queue=S.shuffle?[id,...shuf(rest)]:S.orig.slice();S.i=S.queue.indexOf(id)}
+function playCur(){const t=cur();if(!t)return;retried=false;au.src=srv+t.src;au.play().catch(()=>{});REC=[t.id,...REC.filter(x=>x!==t.id)].slice(0,12);save();setMS();startSC(t);sync()}
+function pl(id){S.orig=CTX.slice();build(id);playCur()}
+function recPlay(id){CTX=REC.filter(x=>byId[x]);pl(id)}
+function playAll(sh){if(!CTX.length)return;S.shuffle=sh;S.orig=CTX.slice();build(sh?CTX[Math.floor(Math.random()*CTX.length)]:CTX[0]);playCur()}
+function shuffleAll(){CTX=SO.slice();playAll(true)}
+function toggle(){if(!cur())return;au.paused?au.play().catch(()=>{}):au.pause()}
+function next(auto){
+ if(auto&&S.repeat===2){au.currentTime=0;au.play().catch(()=>{});startSC(cur());return}
+ if(S.i<S.queue.length-1)S.i++;else if(S.repeat===1||!auto)S.i=0;else{au.pause();au.currentTime=0;return}
+ playCur()}
+function prev(){if(au.currentTime>3)au.currentTime=0;else{S.i=Math.max(0,S.i-1);playCur()}}
+function jump(i){S.i=i;playCur()}
+function toggleShuffle(){S.shuffle=!S.shuffle;const t=cur();if(t)build(t.id);renderPlayer()}
+function toggleRepeat(){S.repeat=(S.repeat+1)%3;renderPlayer()}
+function like(id){const was=LK.has(id);was?LK.delete(id):LK.add(id);save();lfLove(byId[id],!was);render();renderPlayer()}
+function sheet(o){$('#sheet').classList.toggle('open',o)}
+function seek(v){au.currentTime=+v}
+function sync(){renderPlayer();document.querySelectorAll('.row[data-id]').forEach(r=>r.classList.toggle('now',!!cur()&&+r.dataset.id===cur().id))}
+au.onplay=()=>{S.playing=true;renderPlayer()};
+au.onpause=()=>{S.playing=false;renderPlayer()};
+au.onended=()=>next(true);
+au.ontimeupdate=()=>{updateProgress();tickSC()};
+au.ondurationchange=()=>{const sc=$('#sc');if(sc&&isFinite(au.duration))sc.max=au.duration};
+// Links expire after an hour: on an error, reload the library for fresh links and resume where it stopped.
+au.onerror=()=>{const t=cur();if(!t||retried)return;retried=true;const at=au.currentTime,id=t.id;
+ loadLib().then(()=>{const n=byId[id];if(!n)return;au.src=srv+n.src;au.addEventListener('loadedmetadata',()=>{au.currentTime=at},{once:true});return au.play()}).catch(()=>{})};
+
+function renderPlayer(){const t=cur(),m=$('#mini'),sh=$('#sheet');
+ document.body.classList.toggle('playing',!!t&&S.playing);if(!t){m.hidden=true;sheet(false);return}
+ m.hidden=false;const ar=esc(nm(t.artist,U.artist));
+ m.innerHTML=`<button class="info" onclick="sheet(true)" aria-label="Open player">${cv(t.cover,t.album||t.title)}<div class="tt"><b>${esc(t.title)}</b><span>${ar}</span></div></button><button class="ib" aria-label="${S.playing?'Pause':'Play'}" onclick="toggle()">${ic(S.playing?'pause':'play',1,26)}</button><button class="ib" aria-label="Next" onclick="next()">${ic('next',1,24)}</button><div class="pb" id="mb"></div>`;
+ if(TTID!==t.id){TTID=t.id;tint(t)}
+ const up=S.queue.slice(S.i+1,S.i+41).map((id,k)=>({t:byId[id],k:S.i+1+k}));
+ sh.innerHTML=`<div><button class="back" onclick="sheet(false)" aria-label="Close player">${ic('down',0,26)}</button>
+<div class="cov"><div class="disc"></div>${cv(t.cover,t.album||t.title,'big')}</div>
+<div class="nt"><div class="tt"><b>${esc(t.title)}</b><span>${ar}${t.album?', '+esc(t.album):''}</span></div><button class="hb ${LK.has(t.id)?'on':''}" aria-label="Favorite" onclick="like(${t.id})">${ic('heart',LK.has(t.id),26)}</button></div>
+<input id="sc" type="range" min="0" max="${isFinite(au.duration)?au.duration:t.duration||0}" step="1" value="0" oninput="seek(this.value)" onpointerdown="drag=1" onpointerup="drag=0" onpointercancel="drag=0" aria-label="Seek">
+<div class="tm"><span id="tc">0:00</span><span id="td">-0:00</span></div>
+<div class="ctl"><button class="${S.shuffle?'on':''}" aria-label="Shuffle" onclick="toggleShuffle()">${ic('shuffle',0,24)}</button><button aria-label="Previous" onclick="prev()">${ic('prev',1,30)}</button><button class="pp" aria-label="${S.playing?'Pause':'Play'}" onclick="toggle()">${ic(S.playing?'pause':'play',1,30)}</button><button aria-label="Next" onclick="next()">${ic('next',1,30)}</button><button class="${S.repeat?'on':''}" aria-label="Repeat" onclick="toggleRepeat()">${ic('repeat',0,24)}${S.repeat===2?'<small>1</small>':''}</button></div>
+<h2>Up next</h2>${up.length?up.map(u=>`<button class="un" onclick="jump(${u.k})"><span class="tt"><b>${esc(u.t.title)}</b><span>${esc(nm(u.t.artist,U.artist))}</span></span><span class="mu">${fmt(u.t.duration)}</span></button>`).join(''):'<p class="empty">The queue ends here.</p>'}</div>`;
+ updateProgress()}
+function updateProgress(){const t=cur();if(!t)return;const T=isFinite(au.duration)?au.duration:(t.duration||0),e=au.currentTime||0;
+ const mb=$('#mb'),sc=$('#sc'),tc=$('#tc'),td=$('#td');
+ if(mb)mb.style.width=(T?Math.min(100,e/T*100):0)+'%';if(sc&&!drag)sc.value=e;if(tc)tc.textContent=fmt(e);if(td)td.textContent='-'+fmt(T-e)}
+
+/* ---- lock screen and headphone controls ---- */
+function setMS(){if(!('mediaSession' in navigator))return;const t=cur();if(!t)return;
+ try{navigator.mediaSession.metadata=new MediaMetadata({title:t.title,artist:t.artist||'',album:t.album||'',artwork:t.cover?[{src:srv+t.cover,sizes:'320x320',type:'image/jpeg'}]:[]})}catch(e){}}
+if('mediaSession' in navigator){const ms=navigator.mediaSession,H=(a,f)=>{try{ms.setActionHandler(a,f)}catch(e){}};
+ H('play',()=>au.play());H('pause',()=>au.pause());H('previoustrack',()=>prev());H('nexttrack',()=>next());
+ H('seekto',d=>{if(d.seekTime!=null)au.currentTime=d.seekTime});
+ au.addEventListener('play',()=>{ms.playbackState='playing'});au.addEventListener('pause',()=>{ms.playbackState='paused'});
+ au.addEventListener('timeupdate',()=>{try{if(isFinite(au.duration))ms.setPositionState({duration:au.duration,position:Math.min(au.currentTime,au.duration),playbackRate:au.playbackRate||1})}catch(e){}})}
+
+/* ---- ambient colour: average colour of the cover tints the whole app (falls back to a colour from the album name) ---- */
+function tint(t){const R=document.documentElement.style,h=hue(t.album||t.title),f=`hsl(${h} 60% 45%)`;R.setProperty('--tint',f);R.setProperty('--sh',f);
+ if(!t.cover)return;const i=new Image();i.crossOrigin='anonymous';
+ i.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=8;const x=c.getContext('2d');x.drawImage(i,0,0,8,8);const d=x.getImageData(0,0,8,8).data;let r=0,g=0,b=0;for(let k=0;k<d.length;k+=4){r+=d[k];g+=d[k+1];b+=d[k+2]}const n=d.length/4,v=`rgb(${r/n|0} ${g/n|0} ${b/n|0})`;if(cur()&&cur().id===t.id){R.setProperty('--tint',v);R.setProperty('--sh',v)}}catch(e){}};
+ i.src=srv+t.cover}
+
+/* ---- Last.fm: signed calls happen on your server, so the secret never reaches this page ---- */
+const lf=(p,b)=>fetch(srv+'/api/lastfm/'+p,b===undefined?{headers:{Authorization:'Bearer '+tok}}:{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(b)});
+const saveQ=()=>{try{localStorage.setItem('str-scq',JSON.stringify(SQ))}catch(e){}};
+const lfOk=t=>LF.state==='on'&&t&&t.artist&&String(t.artist).trim();
+function lfStatus(){lf('status').then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{LF.state=j.connected?'on':'off';LF.user=j.user||'';if(j.connected)flushSC()}).catch(()=>{LF.state='na'}).finally(()=>{if(S.tab==='library'&&S.lib==='Server'&&!S.v)render()})}
+async function lfConnect(){LF.msg='';try{const r=await lf('auth',{}),j=await r.json();if(!r.ok||!j.token)throw 0;LF.token=j.token;LF.url=j.url}catch(e){LF.msg='Could not start the Last.fm connection.'}render()}
+async function lfFinish(){try{const r=await lf('session',{token:LF.token}),j=await r.json();if(!r.ok)throw 0;LF.state='on';LF.user=j.user;LF.token='';LF.url='';LF.msg='';flushSC()}catch(e){LF.msg='Not approved yet. Open the Last.fm page and allow access first.'}render()}
+async function lfOff(){try{await lf('disconnect',{})}catch(e){}LF.state='off';LF.user='';SQ=[];saveQ();render()}
+function lfNow(t){if(lfOk(t))lf('now',{artist:t.artist,track:t.title,album:t.album||'',duration:Math.round(t.duration||0)}).catch(()=>{})}
+function lfLove(t,on){if(lfOk(t))lf('love',{artist:t.artist,track:t.title,on}).catch(()=>{})}
+// A play counts after 30 s and half the song (or 4 minutes), like Last.fm's own rule. Skipped or seeked time is not counted.
+function startSC(t){SC=t?{id:t.id,ts:Math.floor(Date.now()/1000),acc:0,last:0,sent:false}:null;lfNow(t)}
+function tickSC(){if(!SC||SC.sent)return;const t=byId[SC.id],e=au.currentTime||0,d=e-SC.last;SC.last=e;if(d>0&&d<2)SC.acc+=d;
+ const T=isFinite(au.duration)?au.duration:(t&&t.duration)||0;
+ if(T>30&&SC.acc>=Math.min(240,T/2)){SC.sent=true;if(lfOk(t)){SQ.push({artist:t.artist,track:t.title,album:t.album||'',ts:SC.ts,duration:Math.round(T)});saveQ();flushSC()}}}
+// Plays are kept on this device until Last.fm accepts them, so nothing is lost offline (Last.fm ignores plays older than two weeks).
+async function flushSC(){if(flushing||LF.state!=='on'||!tok)return;const lim=Date.now()/1000-13*86400;SQ=SQ.filter(x=>x.ts>lim);saveQ();if(!SQ.length)return;
+ flushing=true;let again=false;
+ try{const n=Math.min(50,SQ.length),r=await lf('scrobble',{items:SQ.slice(0,n)}),j=await r.json();if(r.ok&&(j.ok||!j.keep)){SQ.splice(0,n);saveQ();again=SQ.length>0}}catch(e){}
+ flushing=false;if(again)flushSC()}
+addEventListener('online',flushSC);
+function lfBlock(){
+ if(LF.state==='on')return`<h2>Last.fm</h2><p class="mu">Scrobbling as ${esc(LF.user)}${SQ.length?', '+SQ.length+' waiting to send':''}. Hearts are sent as loved tracks.</p><div class="acts"><button class="btn alt" onclick="lfOff()">Disconnect Last.fm</button></div>`;
+ if(LF.state==='off')return`<h2>Last.fm</h2>`+(LF.token?`<p class="mu">1. Open Last.fm and allow access. 2. Come back and tap the second button.</p><div class="acts"><a class="btn alt" href="${esc(LF.url)}" target="_blank" rel="noopener">Open Last.fm</a></div><div class="acts"><button class="btn" onclick="lfFinish()">I have approved it</button></div>`:`<div class="acts"><button class="btn alt" onclick="lfConnect()">Connect Last.fm</button></div>`)+(LF.msg?`<p class="mu">${esc(LF.msg)}</p>`:'');
+ if(LF.state==='na'&&tok)return`<h2>Last.fm</h2><p class="mu">Last.fm isn’t set up on your server yet.</p>`;
+ return''}
+
+index();render();renderPlayer();
+(async()=>{if(srv&&tok){try{await loadLib();render()}catch(e){openConn()}}else openConn()})();
+</script>
+</body>
+</html>
